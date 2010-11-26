@@ -36,37 +36,37 @@ def dist(a, b):
 
 class Pad(object): # {{{
     cc   = [ C.A_NORMAL, C.A_REVERSE ]
-    __slots__ = ['m','dim']
+    __slots__ = ['menu','pad','dim','_s']
     #
     sel = property(lambda self: self.menu.s)
     win = property(lambda self: self.menu.w)
     #
     def __init__(self, menu):
-        self.m = menu
-        self.dim = (len(menu), max(2, menu._max_width()))
-        self.pad = C.newpad(*self.dim)
-        p, s = self.pad, self.sel
-        for i in range((len(menu))):
-            p.addstr(i, 0, str(menu[i]), cc[i==s])
-    def draw(self, win=None):
-        win = win or self.win
-        y, x = w.getmaxyx()
-        if y < 2 or x < 4: raise RuntimeError
-        q = max(s - y/2, 0)
-        self.pad.overlay(w, q,0, 1,1, min(y-1, z[0]-1-q), min(x-1, z[1]-1))
-        w.refresh()
+        self.menu = menu
+        self.repop()
+    def __len__(self): return self.dim[0]
+    def repop(self):
+        m = self.menu
+        self.dim = (len(m)+1, max(2, m.max_width())+1)
+        self.pad = p = C.newpad(*self.dim)
+        self._s = s = self.sel
+        #
+        for i in range((len(m))):
+            p.addstr(i, 0, str(m[i]), self.cc[i==s])
     def update(self, win=None):
+        if len(self) != len(self.menu): self.repop()
         win = win or self.win
-        l, p, s, _s, z = self.l, self._p, self.s, self._s, self._z
+        l, p, s, _s, z = self.menu, self.pad, self.sel, self._s, self.dim
         p.addstr(_s, 0, str(l[_s]), self.cc[0])
         p.addstr(s,  0, str(l[s ]), self.cc[1])
         self._s = s
-        y, x = self.w.getmaxyx()
-        q = max(s - y/2, 0)
+        y, x = win.getmaxyx()
         if y < 2 or x < 4: raise RuntimeError
-        self.w.clear()
-        p.overlay(self.w, q,0, 1,1, min(y-1, z[0]-1-q), min(x-1, z[1]-1))
-        self.w.refresh()
+        q = min((max(s - y/2, 0)), len(l)-y+1)
+        ys, xs = self.dim
+        yp = min(y-1, ys-1-q)
+        xp = min(x-1, xs-1)
+        p.overlay(win, q,0, 1,1, yp, xp)
     # }}}
 
 class Menu(object): # {{{
@@ -102,58 +102,25 @@ class Menu(object): # {{{
         self.w = w
         self.l = l
         self.s = s
-        self._z = None
         self.extra = extra
         c = self.__class__
         self.t = extra.get('title',  c.__name__.replace('Menu',''))
         self.m = extra.get('keymap', c.m)
-        #
-        self._s = self.s
         # }}}
     def __len__(self):        return len(self.l)
     def __getitem__(self, i): return self.l[i]
     def max_width(self):      return max([len(x) for x in self.l])
-    def _repad(self): # {{{
-        _z = (len(self.l)+1, max([2]+[len(x)+1 for x in self.l]))
-        if self._z != _z:
-            self._z = _z
-            self._p = C.newpad(*self._z)
-        self._p.clear()
-        return self._p
-        # }}}
-    def draw(self):
-        p = self._repad()
-        w, l, s, z, cc = self.w, self.l, self.s, self._z, self.cc
-        y, x = w.getmaxyx()
-        if y < 2 or x < 4: raise RuntimeError
-        #
+    def input(self, c):       return self.m.get(c)
+    def update(self):
+        w = self.w
         w.clear()
+        self._p.update(w)
         w.addstr(0, 1, self.t, C.A_BOLD)
-        #
-        for i in range(len(l)): p.addstr(i, 0, str(l[i]), cc[i==s])
-        #
-        #destwin[, sminrow, smincol, dminrow, dmincol, dmaxrow, dmaxcol ]
-        q = max(s - y/2, 0)
-        #raise RuntimeError, (z, q,0, 1,1, min(y, z[0]-1-q), min(x, z[1]-1))
-        p.overlay(w, q,0, 1,1, min(y-1, z[0]-1-q), min(x-1, z[1]-1))
-        #
         w.refresh()
-    def hiline(self):
-        cc, l, p, s, _s, z = self.cc, self.l, self._p, self.s, self._s, self._z
-        p.addstr(_s, 0, str(l[_s]), cc[0])
-        p.addstr(s,  0, str(l[s ]), cc[1])
-        self._s = s
-        y, x = self.w.getmaxyx()
-        q = max(s - y/2, 0)
-        if y < 2 or x < 4: raise RuntimeError
-        self.w.clear()
-        p.overlay(self.w, q,0, 1,1, min(y-1, z[0]-1-q), min(x-1, z[1]-1))
-        self.w.refresh()
-    def input(self, c): return self.m.get(c)
     def run(self):
-        self.draw()
+        self._p = Pad(self)
         while True:
-            self.hiline()
+            self.update()
             try:                      c = self.w.getch()
             except KeyboardInterrupt: c = 27
             f = self.input(c)
