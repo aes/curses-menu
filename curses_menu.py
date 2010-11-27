@@ -133,7 +133,7 @@ class InteractiveMenu(Menu): # {{{
     def _bs(o):
         if not o.q: return o.ctx
         o.q = o.q[:-1]
-        o.redo()
+        o._redo()
     m = dict(Menu.m.items() + {
             C.KEY_BACKSPACE: _bs,
             C.KEY_LEFT:      lambda o: o.ctx,
