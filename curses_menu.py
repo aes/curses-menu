@@ -1,11 +1,8 @@
 #!/usr/bin/env python
-# {{{ head comment
+# {{{ module docstring
 """
-dirt is an interactive curses user interface for changing directory in shells.
+Curses menu system. Compatible with python 2.6 and 3.1
 
-It's nice, but there are a lot things that need to be done.
-
-Put the contents of dirt.sh in your .bashrc, or just source it.
 """
 # }}}
 
@@ -78,7 +75,7 @@ class Menu(object): # {{{
     def _first(o):    o.s = 0
     def _last(o):     o.s = len(o.l) - 1
     def _del(o):      o.l, o.s = o.l[:o.s]+o.l[o.s+1:], min(len(o.l) - 2, o.s)
-    def _done(o, *a): raise StopIteration, a
+    def _done(o, *a): raise StopIteration(a)
     def _srch(o):     return InteractiveMenu(o)
     # }}}
     # {{{
@@ -172,6 +169,7 @@ class InteractiveMenu(Menu): # {{{
 
 
 def wrap(f): # {{{
+def redirected(f): # {{{
     try:
         import locale
         locale.setlocale(locale.LC_ALL, '')
@@ -190,24 +188,4 @@ def wrap(f): # {{{
     return ret
     # }}}
 
-class CursesGuard: # {{{
-    def __enter__(self):
-        import locale
-        locale.setlocale(locale.LC_ALL, '')
-        code = locale.getpreferredencoding()
-
-        self.stdscr = C.initscr()
-        C.noecho()
-        C.cbreak()
-        self.stdscr.keypad(1)
-        C.curs_set(0)
-        return self.stdscr
-    def __exit__(self, type, value, traceback):
-        C.curs_set(1);
-        C.nocbreak();
-        self.stdscr.keypad(0);
-        C.echo();
-        C.endwin()
-        False
     # }}}
-
