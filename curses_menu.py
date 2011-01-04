@@ -125,9 +125,19 @@ class Menu(object): # {{{
             try:                      c = self.w.getch()
             except KeyboardInterrupt: c = 27
             f = self.input(c)
-            if callable(f):
+            #if callable(f):
+            try:
                 c = f(self)
                 if c: return c != Menu.QUIT and c or None
+            except TypeError: pass
+    @classmethod
+    def simple(self, l):
+        def loop(w):
+            C.curs_set(0)
+            m = Menu(w, l)
+            while isinstance(m, Menu): m = m.run()
+            return m
+        return redirected(lambda : C.wrapper(loop))
     # }}}
 
 class InteractiveMenu(Menu): # {{{
@@ -135,11 +145,12 @@ class InteractiveMenu(Menu): # {{{
         if not o.q: return o.ctx
         o.q = o.q[:-1]
         o._redo()
-    m = dict(Menu.m.items() + {
+    m = dict(Menu.m)
+    m.update({
             C.KEY_BACKSPACE: _bs,
             C.KEY_LEFT:      lambda o: o.ctx,
             27:              lambda o: o.ctx,
-        }.items())
+        })
     def __init__(self, ctx, dist=dist):
         self.dist, self.ctx, self.q = dist, ctx, ''
         super(InteractiveMenu, self).__init__(ctx.w, ctx.l[:])
