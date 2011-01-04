@@ -62,7 +62,7 @@ class Pad(object): # {{{
         self._s = s
         y, x = win.getmaxyx()
         if y < 2 or x < 4: raise RuntimeError
-        q = min((max(s - y/2, 0)), len(l)-y+1)
+        q = max(0, min((max(s - int(y/2), 0)), len(l)-y+1))
         ys, xs = self.dim
         yp = min(y-1, ys-1-q)
         xp = min(x-1, xs-1)
@@ -109,10 +109,11 @@ class Menu(object): # {{{
         # }}}
     def __len__(self):        return len(self.l)
     def __getitem__(self, i): return self.l[i]
-    def max_width(self):      return max([len(x) for x in self.l])
+    def max_width(self):      return max([1]+[len(x) for x in self.l])
     def input(self, c):       return self.m.get(c)
     def update(self):
         w = self.w
+        w.bkgd(' ', 0)
         w.clear()
         self._p.update(w)
         w.addstr(0, 1, self.t, C.A_BOLD)
