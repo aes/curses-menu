@@ -167,25 +167,24 @@ class InteractiveMenu(Menu): # {{{
         self._redo()
     # }}}
 
-
-def wrap(f): # {{{
 def redirected(f): # {{{
     try:
-        import locale
-        locale.setlocale(locale.LC_ALL, '')
-        code = locale.getpreferredencoding()
-
-        stdscr = C.initscr(); C.noecho(); C.cbreak()
-        stdscr.keypad(1)
-        C.curs_set(0)
-
-        ret = f(stdscr)
-
-    except Exception:
-        ret = None
-
-    C.curs_set(1); C.nocbreak(); stdscr.keypad(0); C.echo(); C.endwin()
-    return ret
+        import sys, os
+        i = os.dup(sys.stdin.fileno())
+        o = os.dup(sys.stdout.fileno())
+        r = open('/dev/tty','r')
+        w = open('/dev/tty','w')
+        os.dup2(r.fileno(), 0)
+        os.dup2(w.fileno(), 1)
+        return f()
+    finally:
+        os.dup2(i, 0)
+        os.dup2(o, 1)
     # }}}
 
+if __name__ == '__main__': # {{{
+    import sys
+    l = []
+    while not l: l = [ x.strip() for x in sys.stdin.readlines() ]
+    print (Menu.simple(l))
     # }}}
